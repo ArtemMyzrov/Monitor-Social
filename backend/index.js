@@ -6,16 +6,16 @@ const db = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+
 app.use(cors());
 app.use(express.json());
 
-// Test route
+
 app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello from Social Monitor API!' });
 });
 
-// Health check
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -24,8 +24,47 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start server
+
+app.get('/api/mentions', (req, res) => {
+  const sql = 'SELECT * FROM mentions ORDER BY date_found DESC';
+  
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+
+app.post('/api/mentions', (req, res) => {
+  const { text, source, url } = req.body;
+  
+  if (!text || !source || !url) {
+    return res.status(400).json({ error: 'Missing required fields: text, source, url' });
+  }
+
+  const sql = 'INSERT OR IGNORE INTO mentions (text, source, url) VALUES (?, ?, ?)';
+  
+  db.run(sql, [text, source, url], function(err) {
+    if (err) {
+      console.error('Insert error:', err);
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ 
+      id: this.lastID, 
+      message: 'Mention added successfully',
+      text, source, url 
+    });
+  });
+});
+
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📊 Mentions API: http://localhost:${PORT}/api/mentions`);
 });
