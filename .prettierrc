@@ -1,0 +1,39 @@
+{
+ 
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "printWidth": 80,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  
+ 
+  "htmlWhitespaceSensitivity": "css",
+  "singleAttributePerLine": false,
+  
+ 
+  "overrides": [
+    {
+      "files": ["*.js", "*.jsx", "*.ts", "*.tsx"],
+      "options": {
+        "parser": "babel-ts",
+        "trailingComma": "all"
+      }
+    },
+    {
+      "files": ["*.css", "*.scss", "*.less"],
+      "options": {
+        "singleQuote": false, 
+        "printWidth": 120     
+      }
+    },
+    {
+      "files": "*.html",
+      "options": {
+        "parser": "html",
+        "printWidth": 100
+      }
+    }
+  ]
+}

@@ -93,6 +93,7 @@ function App() {
 
   return (
     <div className="app">
+      <div className='container'>
       <div className="app-header">
         <Title level={1}>📊 Мониторинг соцсетей</Title>
         
@@ -182,6 +183,7 @@ function App() {
             </List.Item>
           )}
         />
+      </div>
       </div>
     </div>
   )
