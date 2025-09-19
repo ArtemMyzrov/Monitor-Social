@@ -1,21 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const db = require('./database');
+const { db, dbHelpers } = require('./database'); // Правильный импорт
 const vkController = require('./controllers/vkController');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-
 app.use(cors());
 app.use(express.json());
-
 
 app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello from Social Monitor API!' });
 });
-
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -25,42 +22,45 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-
-app.get('/api/mentions', (req, res) => {
-  const sql = 'SELECT * FROM mentions ORDER BY date_found DESC';
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error('Database error:', err);
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+// Обновленный endpoint для получения упоминаний
+app.get('/api/mentions', async (req, res) => {
+  try {
+    const mentions = await dbHelpers.getAllMentions();
+    res.json(mentions);
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// Обновленный endpoint для добавления упоминаний
+app.post('/api/mentions', async (req, res) => {
+  try {
+    const { text, source, url, vk_post_id, likes, reposts, views } = req.body;
 
-app.post('/api/mentions', (req, res) => {
-  const { text, source, url } = req.body;
-
-  if (!text || !source || !url) {
-    return res.status(400).json({ error: 'Missing required fields: text, source, url' });
-  }
-
-  const sql = 'INSERT OR IGNORE INTO mentions (text, source, url) VALUES (?, ?, ?)';
-
-  db.run(sql, [text, source, url], function (err) {
-    if (err) {
-      console.error('Insert error:', err);
-      res.status(500).json({ error: err.message });
-      return;
+    if (!text || !source || !url) {
+      return res.status(400).json({ error: 'Missing required fields: text, source, url' });
     }
+
+    const mentionId = await dbHelpers.saveMention({
+      text,
+      source,
+      url,
+      vk_post_id,
+      likes,
+      reposts,
+      views
+    });
+
     res.json({
-      id: this.lastID,
+      id: mentionId,
       message: 'Mention added successfully',
       text, source, url
     });
-  });
+  } catch (err) {
+    console.error('Insert error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/vk/monitor-saratov', async (req, res) => {
@@ -79,7 +79,6 @@ app.get('/api/vk/monitor-saratov', async (req, res) => {
   }
 });
 
-// Ручной запуск мониторинга
 app.post('/api/vk/monitor', async (req, res) => {
   try {
     const { keywords } = req.body;
@@ -89,7 +88,6 @@ app.post('/api/vk/monitor', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
