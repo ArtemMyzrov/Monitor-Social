@@ -14,7 +14,11 @@ import {
   Image,
   Button,
   message,
-  Avatar
+  Avatar,
+  // НОВЫЙ ИМПОРТ: Добавляем компоненты для управления ключевыми словами
+  Input,
+  Modal as AntModal,
+  Form
 } from 'antd';
 import {
   MessageOutlined,
@@ -26,13 +30,19 @@ import {
   UserOutlined,
   LikeOutlined,
   ShareAltOutlined,
-  EyeOutlined as ViewsIcon
+  EyeOutlined as ViewsIcon,
+  // НОВЫЙ ИМПОРТ: Иконка для редактирования
+  EditOutlined,
+  SaveOutlined
 } from '@ant-design/icons';
 import Modal from './modal/Modal';
 import Comment from './сomment/Comment';
+import HighlightedText from './highlighting/HighlightedText';
 import './styles/App.css';
 
 const { Title, Text } = Typography;
+// НОВЫЙ ИМПОРТ: TextArea для редактирования ключевых слов
+const { TextArea } = Input;
 
 function App() {
   const [health, setHealth] = useState(null);
@@ -45,13 +55,62 @@ function App() {
     imageUrl: '',
     altText: ''
   });
+
+  // НОВАЯ ФИЧА: Состояния для управления ключевыми словами
+  const [keywords, setKeywords] = useState([]);
+  const [isEditingKeywords, setIsEditingKeywords] = useState(false);
+  const [editKeywordsText, setEditKeywordsText] = useState('');
+  const [keywordsLoading, setKeywordsLoading] = useState(false);
+
   console.log(mentions)
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
   useEffect(() => {
     checkHealth();
     fetchMentions();
+    // НОВАЯ ФИЧА: Загружаем ключевые слова при старте
+    fetchKeywords();
   }, []);
+
+  // НОВАЯ ФИЧА: Загрузка ключевых слов с сервера
+  const fetchKeywords = async () => {
+    try {
+      setKeywordsLoading(true);
+      const response = await axios.get('/api/keywords');
+      setKeywords(response.data.keywords || []);
+    } catch (error) {
+      console.error('Ошибка загрузки ключевых слов:', error);
+      // Если endpoint еще не реализован, используем ключи по умолчанию
+      setKeywords([
+        'льготная карта', 'транспортная льготная карта', 'не работает',
+        'остановка', 'проезд', 'кондуктор', 'водитель', 'пассажир', 'перевозчик', 'льготная'
+      ]);
+    } finally {
+      setKeywordsLoading(false);
+    }
+  };
+
+  // НОВАЯ ФИЧА: Сохранение ключевых слов на сервер
+  const saveKeywords = async () => {
+    try {
+      const newKeywords = editKeywordsText.split('\n')
+        .map(k => k.trim())
+        .filter(k => k.length > 0);
+
+      // Пытаемся сохранить на сервер, если endpoint реализован
+      try {
+        await axios.put('/api/keywords', { keywords: newKeywords });
+      } catch (serverError) {
+        console.log('Endpoint /api/keywords еще не реализован, сохраняем локально');
+      }
+
+      setKeywords(newKeywords);
+      setIsEditingKeywords(false);
+      message.success('Ключевые слова обновлены!');
+    } catch (error) {
+      message.error('Ошибка сохранения ключевых слов');
+    }
+  };
 
   const checkHealth = async () => {
     try {
@@ -79,6 +138,11 @@ function App() {
       const response = await axios.get('/api/vk/monitor-saratov');
       message.success(response.data.message || 'Мониторинг запущен');
       await fetchMentions();
+
+      // НОВАЯ ФИЧА: Обновляем ключевые слова после мониторинга, если они пришли в ответе
+      if (response.data.keywords) {
+        setKeywords(response.data.keywords);
+      }
     } catch (error) {
       message.error('Ошибка мониторинга: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -86,6 +150,7 @@ function App() {
     }
   };
 
+  // Остальные существующие функции без изменений...
   const openModal = (imageUrl, altText) => {
     setModalData({
       isOpen: true,
@@ -217,6 +282,59 @@ function App() {
         <div className="app-header">
           <Title level={1}>📊 Мониторинг соцсетей</Title>
 
+          {/* НОВАЯ ФИЧА: Панель управления ключевыми словами */}
+          <Card
+            title={
+              <Space>
+                <span>Ключевые слова для поиска</span>
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  size="small"
+                  onClick={() => {
+                    setIsEditingKeywords(true);
+                    setEditKeywordsText(keywords.join('\n'));
+                  }}
+                />
+              </Space>
+            }
+            style={{ marginBottom: 16 }}
+            loading={keywordsLoading}
+          >
+            {isEditingKeywords ? (
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <TextArea
+                  value={editKeywordsText}
+                  onChange={(e) => setEditKeywordsText(e.target.value)}
+                  rows={4}
+                  placeholder="Введите ключевые слова, каждое с новой строки"
+                />
+                <Space>
+                  <Button type="primary" icon={<SaveOutlined />} onClick={saveKeywords}>
+                    Сохранить
+                  </Button>
+                  <Button onClick={() => setIsEditingKeywords(false)}>
+                    Отмена
+                  </Button>
+                </Space>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  💡 Каждое ключевое слово должно быть на новой строке
+                </Text>
+              </Space>
+            ) : (
+              <div>
+                {keywords.map((keyword, index) => (
+                  <Tag key={index} color="blue" style={{ margin: '2px' }}>
+                    {keyword}
+                  </Tag>
+                ))}
+                {keywords.length === 0 && (
+                  <Text type="secondary">Ключевые слова не заданы</Text>
+                )}
+              </div>
+            )}
+          </Card>
+
           <Row gutter={16} className="stats-row">
             <Col span={6}>
               <Card>
@@ -313,8 +431,7 @@ function App() {
                         {renderAuthorInfo(mention.author)}
                       </div>
                       <Text type="secondary">
-                        <ClockCircleOutlined /> {formatDate(mention.date_found
-                        )}
+                        <ClockCircleOutlined /> {formatDate(mention.date_found)}
                       </Text>
                     </div>
 
@@ -333,8 +450,9 @@ function App() {
 
                     {renderAttachments(mention.attachments)}
 
+                    {/* НОВАЯ ФИЧА: Передаем ключевые слова в компонент подсветки */}
                     <div className="mention-content">
-                      <Text>{mention.text}</Text>
+                      <HighlightedText text={mention.text} keywords={keywords} />
                     </div>
 
                     {mention.geo && (

@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { db, dbHelpers } = require('./database'); // Правильный импорт
+const { dbHelpers } = require('./database');
 const vkController = require('./controllers/vkController');
 
 const app = express();
@@ -84,6 +84,29 @@ app.post('/api/vk/monitor', async (req, res) => {
     const { keywords } = req.body;
     const posts = await vkController.monitorSaratov();
     res.json({ success: true, postsFound: posts.length });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/keywords', async (req, res) => {
+  try {
+    const keywords = vkController.getKeywords();
+    res.json({ success: true, keywords });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/keywords', async (req, res) => {
+  try {
+    const { keywords } = req.body;
+    if (!keywords || !Array.isArray(keywords)) {
+      return res.status(400).json({ error: 'Keywords must be an array' });
+    }
+
+    const updatedKeywords = vkController.updateKeywords(keywords);
+    res.json({ success: true, keywords: updatedKeywords });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
