@@ -1,4 +1,5 @@
 const axios = require('axios')
+const KeywordMatcher = require('./keywordMatcher');
 
 class VKParser {
     constructor(accessToken) {
@@ -6,7 +7,7 @@ class VKParser {
         this.apiVersion = '5.131';
         this.baseURL = 'https://api.vk.com/method';
         this.groupIdCache = new Map();
-
+        this.keywordMatcher = new KeywordMatcher();
 
         this.keywords = [
             'льготная карта', 'транспортная льготная карта', 'не работает',
@@ -14,14 +15,10 @@ class VKParser {
         ];
     }
 
-
     containsKeywords(text) {
-        if (!text) return false;
-
-        const lowerText = text.toLowerCase();
-        return this.keywords.some(keyword =>
-            lowerText.includes(keyword.toLowerCase())
-        );
+        return this.keywordMatcher.containsKeywords(text, this.keywords, {
+            debug: false // логирование для отладки
+        });
     }
 
     removeDuplicates(posts) {
