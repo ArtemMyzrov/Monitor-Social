@@ -111,6 +111,43 @@ app.put('/api/keywords', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+// endpoints для управления группами
+app.get('/api/groups', async (req, res) => {
+  try {
+    const groups = vkController.getGroups();
+    res.json({ success: true, groups });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/groups', async (req, res) => {
+  try {
+    const { groups } = req.body;
+    if (!groups || !Array.isArray(groups)) {
+      return res.status(400).json({ error: 'Groups must be an array' });
+    }
+
+    const updatedGroups = vkController.updateGroups(groups);
+    res.json({ success: true, groups: updatedGroups });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/groups/test', async (req, res) => {
+  try {
+    const { screenName } = req.body;
+    if (!screenName) {
+      return res.status(400).json({ error: 'Screen name is required' });
+    }
+
+    const groupInfo = await vkController.testGroup(screenName);
+    res.json({ success: true, group: groupInfo });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

@@ -7,29 +7,24 @@ class VKController {
     }
 
     async monitorSaratov() {
-        console.log('🔍 Мониторинг саратовских групп...');
+        console.log('🔍 Мониторинг групп...');
 
         try {
-            const allPosts = await this.parser.monitorSaratovGroups();
+            // Используем группы из парсера
+            const posts = await this.parser.monitorGroups();
 
-            // ПЕРЕМЕЩАЕМ объявление переменной ВНЕ блока if
             let savedCount = 0;
-
-            if (allPosts.length > 0) {
-                for (const post of allPosts) {
-                    try {
-                        const result = await dbHelpers.saveMention(post);
-                        if (result) savedCount++;
-                    } catch (saveError) {
-                        console.log(`⚠️ Ошибка сохранения: ${saveError.message}`);
-                    }
+            for (const post of posts) {
+                try {
+                    await dbHelpers.saveMention(post);
+                    savedCount++;
+                } catch (saveError) {
+                    console.log(`⚠️ Ошибка сохранения: ${saveError.message}`);
                 }
-                console.log(`💾 Сохранено новых постов: ${savedCount}/${allPosts.length}`);
             }
 
-            // Теперь savedCount доступен здесь
-            console.log(`🎯 Всего найдено постов: ${allPosts.length}`);
-            return allPosts;
+            console.log(`💾 Сохранено постов: ${savedCount}/${posts.length}`);
+            return posts;
 
         } catch (error) {
             console.error('❌ Ошибка мониторинга:', error);
@@ -37,15 +32,26 @@ class VKController {
         }
     }
 
+    // Методы для управления группами
+    getGroups() {
+        return this.parser.getGroups();
+    }
 
+    updateGroups(newGroups) {
+        return this.parser.setGroups(newGroups);
+    }
+
+    async testGroup(screenName) {
+        return await this.parser.testGroup(screenName);
+    }
+
+    // Методы для ключевых слов
     getKeywords() {
-        return this.parser.keywords;
+        return this.parser.getKeywords();
     }
 
     updateKeywords(newKeywords) {
-        this.parser.keywords = newKeywords;
-        console.log('✅ Ключевые слова обновлены:', newKeywords);
-        return this.parser.keywords;
+        return this.parser.setKeywords(newKeywords);
     }
 }
 
