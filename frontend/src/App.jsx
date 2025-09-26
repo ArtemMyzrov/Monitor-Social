@@ -31,13 +31,13 @@ import {
   LikeOutlined,
   ShareAltOutlined,
   EyeOutlined as ViewsIcon,
-  // НОВЫЙ ИМПОРТ: Иконка для редактирования
   EditOutlined,
   SaveOutlined
 } from '@ant-design/icons';
 import Modal from './modal/Modal';
 import Comment from './сomment/Comment';
 import HighlightedText from './highlighting/HighlightedText';
+import GroupsManager from './groups/GroupsManager';
 import './styles/App.css';
 
 const { Title, Text } = Typography;
@@ -62,15 +62,50 @@ function App() {
   const [editKeywordsText, setEditKeywordsText] = useState('');
   const [keywordsLoading, setKeywordsLoading] = useState(false);
 
-  console.log(mentions)
+  const [groups, setGroups] = useState([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
   useEffect(() => {
     checkHealth();
     fetchMentions();
-    // НОВАЯ ФИЧА: Загружаем ключевые слова при старте
+    fetchGroups();
     fetchKeywords();
   }, []);
+
+  const fetchGroups = async () => {
+    try {
+      setGroupsLoading(true);
+      const response = await axios.get('/api/groups');
+      setGroups(response.data.groups || []);
+    } catch (error) {
+      console.error('Ошибка загрузки групп:', error);
+      setGroups([]);
+    } finally {
+      setGroupsLoading(false);
+    }
+  };
+
+  const handleGroupsChange = async (newGroups) => {
+    try {
+      const response = await axios.put('/api/groups', { groups: newGroups });
+      setGroups(response.data.groups);
+    } catch (error) {
+      message.error('Ошибка сохранения групп');
+    }
+  };
+
+  const handleTestGroup = async (screenName) => {
+    try {
+      const response = await axios.post('/api/groups/test', { screenName });
+      message.success(`Группа найдена: ${response.data.group.groupId}`);
+
+      // Предлагаем добавить группу
+      // Можно реализовать модальное окно для подтверждения
+    } catch (error) {
+      throw new Error('Группа не найдена');
+    }
+  };
 
   // НОВАЯ ФИЧА: Загрузка ключевых слов с сервера
   const fetchKeywords = async () => {
@@ -80,7 +115,6 @@ function App() {
       setKeywords(response.data.keywords || []);
     } catch (error) {
       console.error('Ошибка загрузки ключевых слов:', error);
-      // Если endpoint еще не реализован, используем ключи по умолчанию
       setKeywords([
         'льготная карта', 'транспортная льготная карта', 'не работает',
         'остановка', 'проезд', 'кондуктор', 'водитель', 'пассажир', 'перевозчик', 'льготная'
@@ -334,7 +368,11 @@ function App() {
               </div>
             )}
           </Card>
-
+          <GroupsManager
+            groups={groups}
+            onGroupsChange={handleGroupsChange}
+            loading={groupsLoading}
+          />
           <Row gutter={16} className="stats-row">
             <Col span={6}>
               <Card>

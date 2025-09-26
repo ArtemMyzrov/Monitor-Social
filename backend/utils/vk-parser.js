@@ -7,21 +7,157 @@ class VKParser {
         this.baseURL = 'https://api.vk.com/method';
         this.groupIdCache = new Map();
 
-
         this.keywords = [
             'льготная карта', 'транспортная льготная карта', 'не работает',
             'остановка', 'проезд', 'кондуктор', 'водитель', 'пассажир', 'перевозчик', 'льготная'
         ];
+
+        // Группы по умолчанию
+        this.defaultGroups = [
+            { screenName: 'volodin_saratov', name: 'Вячеслав Володин' },
+            { screenName: 'rus_crime_saratov', name: 'Новости Саратова сегодня' },
+            { screenName: 'saratov.life', name: 'Саратов Life' },
+            { screenName: '64saratov', name: 'Типичный Саратов' },
+            { screenName: 'capatoff', name: 'Регион 64' },
+            { screenName: 'saratov_story', name: 'Подслушано Саратов' },
+            { screenName: 'saratov_atypical', name: 'Нетипичный Саратов' },
+            { screenName: 'sarobl', name: 'Саратовщина - Саратов и Саратовская область' },
+            { screenName: 'saratov24', name: 'Саратов24' }
+        ];
+
+        this.groups = [...this.defaultGroups];
     }
 
+    // Методы для управления группами
+    setGroups(newGroups) {
+        if (Array.isArray(newGroups)) {
+            this.groups = newGroups.filter(group =>
+                group && group.screenName && group.name
+            );
+            console.log('✅ Группы установлены:', this.groups.length, 'групп');
+        }
+        return this.groups;
+    }
 
+    getGroups() {
+        return this.groups;
+    }
+
+    addGroup(screenName, name) {
+        const existingGroup = this.groups.find(g => g.screenName === screenName);
+        if (!existingGroup) {
+            this.groups.push({ screenName, name });
+            console.log(`✅ Добавлена группа: ${name} (@${screenName})`);
+        }
+        return this.groups;
+    }
+
+    removeGroup(screenName) {
+        this.groups = this.groups.filter(g => g.screenName !== screenName);
+        console.log(`✅ Удалена группа: @${screenName}`);
+        return this.groups;
+    }
+
+    // Основной метод мониторинга с поддержкой динамических групп
+    async monitorGroups(customGroups = null) {
+        const groupsToMonitor = customGroups || this.groups;
+
+        if (!groupsToMonitor || groupsToMonitor.length === 0) {
+            console.log('❌ Нет групп для мониторинга');
+            return [];
+        }
+
+        let allPosts = [];
+
+        console.log('🔍 Мониторинг групп:');
+        groupsToMonitor.forEach(group => {
+            console.log(`   - ${group.name} (@${group.screenName})`);
+        });
+
+        for (const group of groupsToMonitor) {
+            try {
+                const groupId = await this.resolveGroupScreenName(group.screenName);
+                if (!groupId) {
+                    console.error(`❌ Пропускаем группу "${group.name}" - ID не получен`);
+                    continue;
+                }
+
+                const posts = await this.getGroupPosts(groupId, 5);
+                const filteredPosts = posts.filter(post => this.containsKeywords(post.text));
+                const parsedPosts = filteredPosts.map(post => this.parsePost(post, group.name));
+                allPosts = allPosts.concat(parsedPosts);
+
+                console.log(`✅ Группа "${group.name}": ${filteredPosts.length}/${posts.length} релевантных постов`);
+                await this.delay(500);
+            } catch (error) {
+                console.error(`❌ Ошибка группы ${group.name}:`, error.message);
+            }
+        }
+
+        const uniquePosts = this.removeDuplicates(allPosts);
+        console.log(`🎯 Всего постов из ${groupsToMonitor.length} групп: ${uniquePosts.length}`);
+
+        return uniquePosts;
+    }
+
+    // Метод для обратной совместимости
+    async monitorSaratovGroups() {
+        return this.monitorGroups(); // Использует группы по умолчанию
+    }
+
+    // Метод для проверки группы
+    async testGroup(screenName) {
+        try {
+            const groupId = await this.resolveGroupScreenName(screenName);
+            if (!groupId) {
+                throw new Error('Группа не найдена');
+            }
+
+            // Пробуем получить несколько постов для проверки доступности
+            const posts = await this.getGroupPosts(groupId, 1);
+
+            return {
+                screenName,
+                groupId,
+                exists: true,
+                accessible: posts !== null,
+                postCount: posts ? posts.length : 0
+            };
+        } catch (error) {
+            throw new Error(`Ошибка проверки группы: ${error.message}`);
+        }
+    }
+
+    // Методы для управления ключевыми словами
+    setKeywords(newKeywords) {
+        if (Array.isArray(newKeywords)) {
+            this.keywords = newKeywords;
+            console.log('✅ Ключевые слова установлены:', this.keywords.length, 'слов');
+        }
+        return this.keywords;
+    }
+
+    getKeywords() {
+        return this.keywords;
+    }
+
+    // Существующие методы без изменений
     containsKeywords(text) {
-        if (!text) return false;
+        if (!text) {
+            console.log('❌ Текст пустой');
+            return false;
+        }
 
         const lowerText = text.toLowerCase();
-        return this.keywords.some(keyword =>
+        const found = this.keywords.some(keyword =>
             lowerText.includes(keyword.toLowerCase())
         );
+
+        if (!found) {
+            console.log('❌ Ключевые слова не найдены в тексте');
+        }
+
+        return found;
     }
 
     removeDuplicates(posts) {
@@ -64,51 +200,6 @@ class VKParser {
         }
     }
 
-    async monitorSaratovGroups() {
-        const saratovGroups = [
-            { screenName: 'volodin_saratov', name: 'Вячеслав Володин' },
-            { screenName: 'rus_crime_saratov', name: 'Новости Саратова сегодня' },
-            { screenName: 'saratov.life', name: 'Саратов Life' },
-            { screenName: '64saratov', name: 'Типичный Саратов' },
-            { screenName: 'capatoff', name: 'Регион 64' },
-            { screenName: 'saratov_story', name: 'Подслушано Саратов' },
-            { screenName: 'saratov_atypical', name: 'Нетипичный Саратов' },
-            { screenName: 'sarobl', name: 'Саратовщина - Саратов и Саратовская область' },
-            { screenName: 'saratov24', name: 'Саратов24' }
-        ];
-
-        let allPosts = [];
-
-
-        for (const group of saratovGroups) {
-            try {
-                const groupId = await this.resolveGroupScreenName(group.screenName);
-                if (!groupId) {
-                    console.error(`❌ Пропускаем группу "${group.name}" - ID не получен`);
-                    continue;
-                }
-
-                const posts = await this.getGroupPosts(groupId, 5);
-
-                const filteredPosts = posts.filter(post =>
-                    this.containsKeywords(post.text)
-                );
-
-                const parsedPosts = filteredPosts.map(post => this.parsePost(post, group.name));
-                allPosts = allPosts.concat(parsedPosts);
-
-                console.log(`✅ Группа "${group.name}": ${filteredPosts.length}/${posts.length} релевантных постов`);
-                await this.delay(500);
-            } catch (error) {
-                console.error(`❌ Ошибка группы ${group.name}:`, error.message);
-            }
-        }
-        const uniquePosts = this.removeDuplicates(allPosts);
-        console.log(`🎯 Всего уникальных релевантных постов: ${uniquePosts.length}`);
-
-        return uniquePosts;
-    }
-
     async getGroupPosts(groupId, count = 5) {
         try {
             const response = await axios.get(`${this.baseURL}/wall.get`, {
@@ -126,13 +217,13 @@ class VKParser {
                 return [];
             }
 
-            return response.data.response.items || [];
+            const posts = response.data.response.items || [];
+            return posts;
         } catch (error) {
             console.error('VK Parser Error:', error.message);
             return [];
         }
     }
-
 
     parsePost(post, groupName = 'VK') {
         return {
@@ -146,7 +237,6 @@ class VKParser {
             views: post.views?.count || 0
         };
     }
-
 
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
