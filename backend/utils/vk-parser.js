@@ -1,5 +1,4 @@
 const axios = require('axios')
-const KeywordMatcher = require('./keywordMatcher');
 
 class VKParser {
     constructor(accessToken) {
@@ -7,7 +6,7 @@ class VKParser {
         this.apiVersion = '5.131';
         this.baseURL = 'https://api.vk.com/method';
         this.groupIdCache = new Map();
-        this.keywordMatcher = new KeywordMatcher();
+
 
         this.keywords = [
             'льготная карта', 'транспортная льготная карта', 'не работает',
@@ -15,10 +14,14 @@ class VKParser {
         ];
     }
 
+
     containsKeywords(text) {
-        return this.keywordMatcher.containsKeywords(text, this.keywords, {
-            debug: false // логирование для отладки
-        });
+        if (!text) return false;
+
+        const lowerText = text.toLowerCase();
+        return this.keywords.some(keyword =>
+            lowerText.includes(keyword.toLowerCase())
+        );
     }
 
     removeDuplicates(posts) {
@@ -100,64 +103,11 @@ class VKParser {
                 console.error(`❌ Ошибка группы ${group.name}:`, error.message);
             }
         }
-
-
-        console.log('🔍 Дополнительный поиск по ключевым словам...');
-        for (const keyword of this.keywords) {
-            try {
-                const searchPosts = await this.searchInSaratov(keyword, 3);
-                // Фильтруем результаты поиска
-                const filteredPosts = searchPosts.filter(post =>
-                    this.containsKeywords(post.text)
-                );
-                const parsedPosts = filteredPosts.map(post =>
-                    this.parsePost(post, `Поиск: ${keyword}`)
-                );
-                allPosts = allPosts.concat(parsedPosts);
-
-                console.log(`✅ Поиск "${keyword}": ${filteredPosts.length} постов`);
-                await this.delay(300); // Уменьшенная задержка
-            } catch (error) {
-                console.error(`❌ Ошибка поиска "${keyword}":`, error.message);
-            }
-        }
-
-
         const uniquePosts = this.removeDuplicates(allPosts);
         console.log(`🎯 Всего уникальных релевантных постов: ${uniquePosts.length}`);
 
         return uniquePosts;
     }
-
-
-    async searchInSaratov(query, count = 10) {
-        console.log(`🔍 Поиск по Саратову: "${query}"`);
-
-        try {
-            const response = await axios.get(`${this.baseURL}/newsfeed.search`, {
-                params: {
-                    q: `${query} Саратов`,
-                    access_token: this.accessToken,
-                    v: this.apiVersion,
-                    count: count,
-                    extended: 0
-                }
-            });
-
-            if (response.data.error) {
-                console.error('VK API Search Error:', response.data.error);
-                return [];
-            }
-
-            const posts = response.data.response.items || [];
-            console.log(`✅ Найдено постов по запросу "${query}": ${posts.length}`);
-            return posts;
-        } catch (error) {
-            console.error('VK Search Error:', error.message);
-            return [];
-        }
-    }
-
 
     async getGroupPosts(groupId, count = 5) {
         try {

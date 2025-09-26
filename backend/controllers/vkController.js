@@ -7,12 +7,15 @@ class VKController {
     }
 
     async monitorSaratov() {
-        console.log('🔍 Мониторинг с фильтрацией по ключевым словам...');
+        console.log('🔍 Мониторинг саратовских групп...');
 
         try {
             const allPosts = await this.parser.monitorSaratovGroups();
+
+            // ПЕРЕМЕЩАЕМ объявление переменной ВНЕ блока if
+            let savedCount = 0;
+
             if (allPosts.length > 0) {
-                let savedCount = 0;
                 for (const post of allPosts) {
                     try {
                         const result = await dbHelpers.saveMention(post);
@@ -24,20 +27,16 @@ class VKController {
                 console.log(`💾 Сохранено новых постов: ${savedCount}/${allPosts.length}`);
             }
 
-            return {
-                posts: allPosts,
-                keywords: this.parser.keywords,
-                stats: {
-                    totalFound: allPosts.length,
-                    savedCount: savedCount
-                }
-            };
+            // Теперь savedCount доступен здесь
+            console.log(`🎯 Всего найдено постов: ${allPosts.length}`);
+            return allPosts;
 
         } catch (error) {
             console.error('❌ Ошибка мониторинга:', error);
             throw error;
         }
     }
+
 
     getKeywords() {
         return this.parser.keywords;
