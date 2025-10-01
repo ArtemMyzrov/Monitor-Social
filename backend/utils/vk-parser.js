@@ -59,22 +59,13 @@ class VKParser {
     }
 
     // Основной метод мониторинга с поддержкой динамических групп
-    async monitorGroups(customGroups = null) {
-        const groupsToMonitor = customGroups || this.groups;
-
-        if (!groupsToMonitor || groupsToMonitor.length === 0) {
-            console.log('❌ Нет групп для мониторинга');
-            return [];
-        }
+    // В VKParser полностью перепишем метод monitorGroups
+    async monitorGroups() {
+        console.log('🔍 Мониторинг групп...');
 
         let allPosts = [];
 
-        console.log('🔍 Мониторинг групп:');
-        groupsToMonitor.forEach(group => {
-            console.log(`   - ${group.name} (@${group.screenName})`);
-        });
-
-        for (const group of groupsToMonitor) {
+        for (const group of this.groups) {
             try {
                 const groupId = await this.resolveGroupScreenName(group.screenName);
                 if (!groupId) {
@@ -82,20 +73,36 @@ class VKParser {
                     continue;
                 }
 
-                const posts = await this.getGroupPosts(groupId, 5);
-                const filteredPosts = posts.filter(post => this.containsKeywords(post.text));
-                const parsedPosts = filteredPosts.map(post => this.parsePost(post, group.name));
-                allPosts = allPosts.concat(parsedPosts);
+                // Получаем посты за последние 7 дней (как при фильтрации)
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 7); // Последние 7 дней
 
-                console.log(`✅ Группа "${group.name}": ${filteredPosts.length}/${posts.length} релевантных постов`);
-                await this.delay(500);
+                const startTimestamp = Math.floor(startDate.getTime() / 1000);
+                const endTimestamp = Math.floor(endDate.getTime() / 1000);
+
+                // Используем тот же метод, что и в monitorByDateRange
+                const posts = await this.getPostsByDateRange(groupId, startTimestamp, endTimestamp);
+                const filteredPosts = posts.filter(post => this.containsKeywords(post.text));
+                const parsedPosts = filteredPosts.map(post => {
+                    console.log(`📅 Пост из ${group.name}:`, {
+                        date: post.date,
+                        text: post.text?.substring(0, 50)
+                    });
+                    return this.parsePost(post, group.name);
+                });
+
+                allPosts = allPosts.concat(parsedPosts);
+                console.log(`✅ Группа "${group.name}": ${filteredPosts.length} релевантных постов`);
+
+                await this.delay(300);
             } catch (error) {
                 console.error(`❌ Ошибка группы ${group.name}:`, error.message);
             }
         }
 
         const uniquePosts = this.removeDuplicates(allPosts);
-        console.log(`🎯 Всего постов из ${groupsToMonitor.length} групп: ${uniquePosts.length}`);
+        console.log(`🎯 Всего найдено постов: ${uniquePosts.length}`);
 
         return uniquePosts;
     }
@@ -231,13 +238,99 @@ class VKParser {
             source: `VK: ${groupName}`,
             url: `https://vk.com/wall${post.owner_id}_${post.id}`,
             vk_post_id: `${post.owner_id}_${post.id}`,
-            date: new Date(post.date * 1000),
+            date: new Date(post.date * 1000), // Дата публикации поста в VK
+            date_found: new Date(), // Дата когда пост был найден системой
             likes: post.likes?.count || 0,
             reposts: post.reposts?.count || 0,
             views: post.views?.count || 0
         };
     }
+    async monitorByDateRange(startDate, endDate = new Date()) {
+        const startTimestamp = Math.floor(startDate.getTime() / 1000);
+        const endTimestamp = Math.floor(endDate.getTime() / 1000);
 
+        console.log(`⏰ Поиск постов с ${startDate.toLocaleString('ru-RU')} по ${endDate.toLocaleString('ru-RU')}`);
+
+        let allPosts = [];
+
+        for (const group of this.groups) {
+            try {
+                const groupId = await this.resolveGroupScreenName(group.screenName);
+                if (!groupId) {
+                    console.error(`❌ Пропускаем группу "${group.name}" - ID не получен`);
+                    continue;
+                }
+
+                // Получаем посты за указанный период
+                const posts = await this.getPostsByDateRange(groupId, startTimestamp, endTimestamp);
+                const filteredPosts = posts.filter(post => this.containsKeywords(post.text));
+                const parsedPosts = filteredPosts.map(post => this.parsePost(post, group.name));
+                allPosts = allPosts.concat(parsedPosts);
+
+                console.log(`✅ Группа "${group.name}": ${filteredPosts.length} релевантных постов за период`);
+                await this.delay(300);
+            } catch (error) {
+                console.error(`❌ Ошибка группы ${group.name}:`, error.message);
+            }
+        }
+
+        const uniquePosts = this.removeDuplicates(allPosts);
+        console.log(`🎯 Всего найдено постов за период: ${uniquePosts.length}`);
+
+        return uniquePosts;
+    }
+
+    async getPostsByDateRange(groupId, startTimestamp, endTimestamp) {
+        try {
+            let allPosts = [];
+            let offset = 0;
+            const count = 100; // Максимум по VK API
+
+            while (true) {
+                const response = await axios.get(`${this.baseURL}/wall.get`, {
+                    params: {
+                        owner_id: groupId,
+                        access_token: this.accessToken,
+                        v: this.apiVersion,
+                        count: count,
+                        offset: offset,
+                        extended: 0
+                    }
+                });
+
+                if (response.data.error || !response.data.response) {
+                    break;
+                }
+
+                const posts = response.data.response.items || [];
+                if (posts.length === 0) break;
+
+                // Фильтруем посты по дате
+                const postsInRange = posts.filter(post =>
+                    post.date >= startTimestamp && post.date <= endTimestamp
+                );
+
+                allPosts = allPosts.concat(postsInRange);
+
+                // Если самый старый пост старше нужного периода - выходим
+                const oldestPost = posts[posts.length - 1];
+                if (oldestPost.date < startTimestamp) {
+                    break;
+                }
+
+                offset += count;
+                await this.delay(200); // Задержка между запросами
+            }
+
+            // Сортируем от новых к старым
+            allPosts.sort((a, b) => b.date - a.date);
+
+            return allPosts;
+        } catch (error) {
+            console.error('VK Parser Error:', error.message);
+            return [];
+        }
+    }
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }

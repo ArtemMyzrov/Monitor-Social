@@ -148,6 +148,35 @@ app.post('/api/groups/test', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+// Эндпоинт для получения постов за последние N дней
+app.post('/api/vk/monitor-by-days', async (req, res) => {
+  try {
+    const { days } = req.body;
+
+    // Проверяем, что параметр days передан и это число
+    if (!days || isNaN(days)) {
+      return res.status(400).json({ success: false, error: 'Параметр "days" обязателен и должен быть числом.' });
+    }
+
+    // Вычисляем дату начала периода (текущая дата минус N дней)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+
+    // Используем существующий метод historicalSearch, передавая ему объекты Date
+    const posts = await vkController.historicalSearch(startDate, endDate);
+
+    res.json({
+      success: true,
+      postsFound: posts.length,
+      posts: posts,
+      message: `Найдено ${posts.length} постов за последние ${days} дней.`
+    });
+  } catch (error) {
+    console.error('❌ Ошибка в /api/vk/monitor-by-days:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

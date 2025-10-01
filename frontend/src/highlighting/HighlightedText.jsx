@@ -1,4 +1,3 @@
-import React from 'react';
 
 const HighlightedText = ({ text, keywords = [], className = "" }) => {
   const highlightKeywords = (text, keywords) => {
