@@ -38,6 +38,7 @@ import Modal from './modal/Modal';
 import Comment from './сomment/Comment';
 import HighlightedText from './highlighting/HighlightedText';
 import GroupsManager from './groups/GroupsManager';
+import SimpleDaysFilter from './filters/SimpleDaysFilter';
 import './styles/App.css';
 
 const { Title, Text } = Typography;
@@ -65,12 +66,19 @@ function App() {
   const [groups, setGroups] = useState([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
+  const [displayMentions, setDisplayMentions] = useState([]);
+
+  console.log(mentions)
+  const handleFilterApplied = (posts) => {
+    setDisplayMentions(posts);
+  };
 
   useEffect(() => {
     checkHealth();
     fetchMentions();
     fetchGroups();
     fetchKeywords();
+    setDisplayMentions(mentions);
   }, []);
 
   const fetchGroups = async () => {
@@ -159,6 +167,7 @@ function App() {
     try {
       const response = await axios.get('/api/mentions');
       setMentions(response.data);
+      setDisplayMentions(response.data);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -315,7 +324,7 @@ function App() {
       <div className='container'>
         <div className="app-header">
           <Title level={1}>📊 Мониторинг соцсетей</Title>
-
+          <SimpleDaysFilter onFilterApplied={handleFilterApplied} />
           {/* НОВАЯ ФИЧА: Панель управления ключевыми словами */}
           <Card
             title={
@@ -378,7 +387,7 @@ function App() {
               <Card>
                 <Statistic
                   title="Всего упоминаний"
-                  value={mentions.length}
+                  value={displayMentions.length}
                   prefix={<MessageOutlined />}
                 />
               </Card>
@@ -445,7 +454,7 @@ function App() {
                 showTotal: (total, range) =>
                   `${range[0]}-${range[1]} из ${total} упоминаний`
               }}
-              dataSource={mentions}
+              dataSource={displayMentions}
               renderItem={(mention) => (
                 <List.Item key={mention.id}>
                   <Card
@@ -469,7 +478,7 @@ function App() {
                         {renderAuthorInfo(mention.author)}
                       </div>
                       <Text type="secondary">
-                        <ClockCircleOutlined /> {formatDate(mention.date_found)}
+                        <ClockCircleOutlined /> {formatDate(mention.date)}
                       </Text>
                     </div>
 

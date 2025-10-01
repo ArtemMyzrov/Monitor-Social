@@ -32,6 +32,18 @@ class VKController {
         }
     }
 
+    async historicalSearch(startDate, endDate = new Date()) {
+        try {
+            // Передаем объекты Date в парсер
+            const posts = await this.parser.monitorByDateRange(startDate, endDate);
+            // ... (возможно, сохраняем посты в БД, если нужно)
+            return posts;
+        } catch (error) {
+            console.error('❌ Ошибка исторического поиска:', error);
+            throw error;
+        }
+    }
+
     // Методы для управления группами
     getGroups() {
         return this.parser.getGroups();
