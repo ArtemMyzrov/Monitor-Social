@@ -1,4 +1,5 @@
 const axios = require('axios')
+const KeywordMatcher = require('./keywordMatcher');
 
 class VKParser {
     constructor(accessToken) {
@@ -6,6 +7,7 @@ class VKParser {
         this.apiVersion = '5.131';
         this.baseURL = 'https://api.vk.com/method';
         this.groupIdCache = new Map();
+        this.keywordMatcher = new KeywordMatcher()
 
         this.keywords = [
             'льготная карта', 'транспортная льготная карта', 'не работает',
@@ -140,6 +142,15 @@ class VKParser {
         if (Array.isArray(newKeywords)) {
             this.keywords = newKeywords;
             console.log('✅ Ключевые слова установлены:', this.keywords.length, 'слов');
+
+            // Обновляем словоформы в KeywordMatcher если нужно
+            // Например, добавляем новые словоформы для новых ключевых слов
+            newKeywords.forEach(keyword => {
+                if (!this.keywordMatcher.wordForms[keyword]) {
+                    // Можно добавить базовые словоформы или оставить пустым
+                    console.log(`ℹ️ Новое ключевое слово: "${keyword}"`);
+                }
+            });
         }
         return this.keywords;
     }
@@ -150,23 +161,42 @@ class VKParser {
 
     // Существующие методы без изменений
     containsKeywords(text) {
-        if (!text) {
-            console.log('❌ Текст пустой');
-            return false;
-        }
+        if (!text) return false;
+
+        console.log(`\n🔍 ПРОВЕРКА: "${text.substring(0, 100)}..."`);
 
         const lowerText = text.toLowerCase();
-        const found = this.keywords.some(keyword =>
-            lowerText.includes(keyword.toLowerCase())
-        );
+        let found = false;
+
+        this.keywords.forEach(keyword => {
+            if (keyword.includes(' ')) {
+                // Для фраз ищем точное вхождение
+                if (lowerText.includes(keyword.toLowerCase())) {
+                    console.log(`✅ Найдена фраза: "${keyword}"`);
+                    found = true;
+                }
+            } else if (keyword === 'водитель') {
+                // Для "водитель" ищем только отдельные слова
+                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+                if (regex.test(text)) {
+                    console.log(`✅ Найдено слово: "${keyword}"`);
+                    found = true;
+                }
+            } else {
+                // Для остальных слов ищем любое вхождение
+                if (lowerText.includes(keyword.toLowerCase())) {
+                    console.log(`✅ Найдено слово: "${keyword}"`);
+                    found = true;
+                }
+            }
+        });
 
         if (!found) {
-            console.log('❌ Ключевые слова не найдены в тексте');
+            console.log('❌ Ничего не найдено');
         }
 
         return found;
     }
-
     removeDuplicates(posts) {
         const seen = new Set();
         return posts.filter(post => {

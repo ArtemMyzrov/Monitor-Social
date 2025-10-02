@@ -1,7 +1,6 @@
 .app {
   min-height: 100vh;
-  background-color: #f0f2f5;
-  padding: 20px;
+  background: linear-gradient(45deg, #7e22ce 0%, #eab308 100%);
 }
 
 .container {
@@ -17,11 +16,18 @@
 }
 
 .app-header {
-  margin-bottom: 24px;
+  overflow: hidden;
 }
 
 .stats-row {
-  margin-top: 20px;
+  background-color: #fff;
+  height: 80px;
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
 }
 
 .mentions-section {
@@ -150,10 +156,6 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
-  }
-
-  .stats-row .ant-col {
-    margin-bottom: 16px;
   }
 
   .stats-row .ant-col:last-child {

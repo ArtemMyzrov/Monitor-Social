@@ -323,9 +323,29 @@ function App() {
     <div className="app">
       <div className='container'>
         <div className="app-header">
-          <Title level={1}>📊 Мониторинг соцсетей</Title>
-          <SimpleDaysFilter onFilterApplied={handleFilterApplied} />
-          {/* НОВАЯ ФИЧА: Панель управления ключевыми словами */}
+          <h1>📊 Мониторинг соцсетей</h1>
+          <div className="stats-row">
+
+            <Statistic
+              title="Последнее обновление"
+              value={health?.timestamp ? formatDate(health.timestamp) : 'N/A'}
+              prefix={<ClockCircleOutlined />}
+            />
+
+            <Statistic
+              title="Статус системы"
+              value={health?.status || 'UNKNOWN'}
+              valueStyle={{ color: health?.status === 'OK' ? '#3f8600' : '#cf1322' }}
+            />
+            <Statistic
+              title="Всего упоминаний"
+              value={displayMentions.length}
+              prefix={<MessageOutlined />}
+            />
+
+          </div>
+          {/* <SimpleDaysFilter onFilterApplied={handleFilterApplied} /> */}
+
           <Card
             title={
               <Space>
@@ -382,51 +402,8 @@ function App() {
             onGroupsChange={handleGroupsChange}
             loading={groupsLoading}
           />
-          <Row gutter={16} className="stats-row">
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Всего упоминаний"
-                  value={displayMentions.length}
-                  prefix={<MessageOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Статус системы"
-                  value={health?.status || 'UNKNOWN'}
-                  valueStyle={{ color: health?.status === 'OK' ? '#3f8600' : '#cf1322' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <Statistic
-                  title="Последнее обновление"
-                  value={health?.timestamp ? formatDate(health.timestamp) : 'N/A'}
-                  prefix={<ClockCircleOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card>
-                <div style={{ textAlign: 'center' }}>
-                  <Button
-                    type="primary"
-                    icon={<PlayCircleOutlined />}
-                    loading={monitoring}
-                    onClick={runMonitoring}
-                  >
-                    Запустить мониторинг
-                  </Button>
-                </div>
-              </Card>
-            </Col>
-          </Row>
         </div>
-
+        <SimpleDaysFilter onFilterApplied={handleFilterApplied} />
         <div className="mentions-section">
           <h2>Найденные упоминания</h2>
 
