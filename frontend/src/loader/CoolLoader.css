@@ -1,0 +1,105 @@
+@keyframes SPINNER {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes LABEL {
+    0% {
+        opacity: 1.0;
+        transform: translate(-50%, -50%) scale(1.0);
+    }
+
+    5% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+
+    95% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+
+    100% {
+        opacity: 1.0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.overlay .spinner-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    filter: none;
+}
+
+.overlay .spinner,
+.overlay .spinner:before,
+.overlay .spinner:after {
+    border: 10px solid rgba(0, 0, 0, 0);
+    border-top: 10px solid rgba(0, 255, 255, 1.0);
+    border-bottom: 10px solid rgba(0, 255, 255, 1.0);
+    border-radius: 50px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    filter: none;
+}
+
+.overlay .spinner:before,
+.overlay .spinner:after {
+    content: "";
+}
+
+.overlay .spinner {
+    width: 100px;
+    height: 100px;
+    animation: SPINNER 8s linear infinite;
+}
+
+.overlay .spinner:before {
+    width: 80px;
+    height: 80px;
+    animation: SPINNER 10s linear infinite;
+}
+
+.overlay .spinner:after {
+    width: 60px;
+    height: 60px;
+    animation: SPINNER 5s linear infinite;
+}
+
+.overlay .label {
+    color: rgba(0, 255, 255, 1.0);
+    text-transform: uppercase;
+    font-family: sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    animation: LABEL 2s linear infinite;
+    transform: translate(-50%, -50%);
+    filter: none;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
