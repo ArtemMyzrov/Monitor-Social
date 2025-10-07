@@ -58,7 +58,6 @@ function App() {
       { screenName: 'saratov24', name: 'Саратов24' }
     ];
     try {
-      setGroupsLoading(true);
       const response = await axios.get('/api/groups');
       const apiGroups = response.data.groups || [];
       const allGroups = [...defaultGroups, ...apiGroups];
@@ -70,7 +69,7 @@ function App() {
       console.error('Ошибка загрузки групп:', error);
       setGroups(defaultGroups);
     } finally {
-      setGroupsLoading(false);
+
     }
   };
 
