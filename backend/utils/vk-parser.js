@@ -165,27 +165,22 @@ class VKParser {
 
         console.log(`\n🔍 ПРОВЕРКА: "${text.substring(0, 100)}..."`);
 
-        const lowerText = text.toLowerCase();
+        const words = text.toLowerCase().split(/\s+/); // Разбиваем текст на слова
         let found = false;
 
         this.keywords.forEach(keyword => {
+            const lowerKeyword = keyword.toLowerCase();
+
             if (keyword.includes(' ')) {
-                // Для фраз ищем точное вхождение
-                if (lowerText.includes(keyword.toLowerCase())) {
+                // Для фраз ищем точное вхождение в тексте
+                if (text.toLowerCase().includes(lowerKeyword)) {
                     console.log(`✅ Найдена фраза: "${keyword}"`);
                     found = true;
                 }
-            } else if (keyword === 'водитель') {
-                // Для "водитель" ищем только отдельные слова
-                const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-                if (regex.test(text)) {
-                    console.log(`✅ Найдено слово: "${keyword}"`);
-                    found = true;
-                }
             } else {
-                // Для остальных слов ищем любое вхождение
-                if (lowerText.includes(keyword.toLowerCase())) {
-                    console.log(`✅ Найдено слово: "${keyword}"`);
+                // Для отдельных слов ищем точное совпадение среди слов текста
+                if (words.some(word => word === lowerKeyword)) {
+                    console.log(`✅ Найдено точное совпадение: "${keyword}"`);
                     found = true;
                 }
             }
