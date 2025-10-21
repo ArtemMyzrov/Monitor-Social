@@ -1,29 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { FloatButton } from 'antd';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
-import "./ScrollToButton.css";
+import './ScrollToButton.css';
 
 const ScrollToButton = () => {
-    const [isAtBottom, setIsAtBottom] = useState(false);
+    const [scrollDirection, setScrollDirection] = useState('down');
     const [showButton, setShowButton] = useState(false);
+    const lastScrollY = useRef(0);
+    const ticking = useRef(false);
 
-    useEffect(() => {
-        const checkScrollPosition = () => {
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const windowHeight = window.innerHeight;
-            const documentHeight = document.documentElement.scrollHeight;
-            const atBottom = scrollTop + windowHeight >= documentHeight - 100;
-            setIsAtBottom(atBottom);
+    const updateScrollDirection = useCallback(() => {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
-            setShowButton(scrollTop > 100);
-        };
+        if (Math.abs(scrollTop - lastScrollY.current) > 5) { // Минимальное изменение
+            if (scrollTop > lastScrollY.current) {
+                setScrollDirection('down');
+            } else {
+                setScrollDirection('up');
+            }
+        }
 
-        window.addEventListener('scroll', checkScrollPosition);
-        checkScrollPosition();
-
-        return () => window.removeEventListener('scroll', checkScrollPosition);
+        lastScrollY.current = scrollTop;
+        setShowButton(scrollTop > 100);
+        ticking.current = false;
     }, []);
 
+    const handleScroll = useCallback(() => {
+        if (!ticking.current) {
+            requestAnimationFrame(updateScrollDirection);
+            ticking.current = true;
+        }
+    }, [updateScrollDirection]);
+
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [handleScroll]);
 
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -36,21 +48,37 @@ const ScrollToButton = () => {
         });
     };
 
+    const handleButtonClick = () => {
+        if (scrollDirection === 'up') {
+            scrollToTop();
+        } else {
+            scrollToBottom();
+        }
+    };
+
+    const getButtonIcon = () => {
+        return scrollDirection === 'up' ? <UpOutlined /> : <DownOutlined />;
+    };
+
+    const getButtonTooltip = () => {
+        return scrollDirection === 'up' ? "Вверх" : "Вниз";
+    };
+
     if (!showButton) {
         return null;
     }
 
     return (
         <FloatButton
-            icon={isAtBottom ? <UpOutlined /> : <DownOutlined />}
+            icon={getButtonIcon()}
             type="primary"
             style={{
                 right: 24,
                 bottom: 24,
             }}
-            onClick={isAtBottom ? scrollToTop : scrollToBottom}
-            tooltip={isAtBottom ? "Вверх" : "Вниз"}
-            className='scroll-btn'
+            onClick={handleButtonClick}
+            tooltip={getButtonTooltip()}
+            className={`scroll-btn scroll-btn-${scrollDirection}`}
         />
     );
 };
