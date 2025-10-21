@@ -4,8 +4,7 @@ import { Card, Button, Space, message } from 'antd';
 import { HistoryOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-const SimpleDaysFilter = ({ onFilterApplied }) => {
-    const [loading, setLoading] = useState(false);
+const SimpleDaysFilter = ({ onFilterApplied, onFilterLoading }) => {
     const [activePeriod, setActivePeriod] = useState(null);
 
     // Массив с предустановленными периодами
@@ -16,8 +15,13 @@ const SimpleDaysFilter = ({ onFilterApplied }) => {
     ];
 
     const handlePeriodClick = async (days) => {
-        setLoading(true);
         setActivePeriod(days);
+
+        // 🔥 Передаем состояние загрузки вверх
+        if (onFilterLoading) {
+            onFilterLoading(true);
+        }
+
         try {
             const response = await axios.post('/api/vk/monitor-by-days', { days });
             message.success(response.data.message);
@@ -31,7 +35,10 @@ const SimpleDaysFilter = ({ onFilterApplied }) => {
             console.error('Ошибка при фильтрации:', error);
             message.error('Ошибка при загрузке данных: ' + error.message);
         } finally {
-            setLoading(false);
+            // 🔥 Передаем состояние загрузки вверх
+            if (onFilterLoading) {
+                onFilterLoading(false);
+            }
         }
     };
 
@@ -56,7 +63,6 @@ const SimpleDaysFilter = ({ onFilterApplied }) => {
                             key={period.days}
                             type={activePeriod === period.days ? 'primary' : 'default'}
                             onClick={() => handlePeriodClick(period.days)}
-                            loading={loading && activePeriod === period.days}
                             size="small"
                         >
                             {period.label}

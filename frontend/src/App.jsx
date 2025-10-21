@@ -8,10 +8,6 @@ import {
   Button,
   message,
 } from 'antd';
-import {
-  LoadingOutlined,
-  EyeOutlined as ViewsIcon,
-} from '@ant-design/icons';
 
 import GroupsManager from './groups/GroupsManager';
 import SimpleDaysFilter from './filters/SimpleDaysFilter';
@@ -28,26 +24,34 @@ function App() {
   const [mentions, setMentions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [monitoring, setMonitoring] = useState(false);
+  const [filtering, setFiltering] = useState(false);
   const [error, setError] = useState(null);
   const [keywords, setKeywords] = useState([]);
   const [groups, setGroups] = useState([]);
   const [displayMentions, setDisplayMentions] = useState([]);
 
+  // 🔥 Функция для сортировки по дате из VK
   const sortMentionsByDate = (mentionsList) => {
     if (!mentionsList || !Array.isArray(mentionsList)) return [];
 
     return [...mentionsList].sort((a, b) => {
       const dateA = new Date(a.date || a.date_found);
       const dateB = new Date(b.date || b.date_found);
-      return dateB - dateA; // DESC - новые сначала
+      return dateB - dateA;
     });
   };
 
   const handleFilterApplied = (posts) => {
-    const sortedPosts = sortMentionsByDate(posts);
-    setDisplayMentions(sortedPosts);
+    setFiltering(true);
+    setTimeout(() => {
+      const sortedPosts = sortMentionsByDate(posts);
+      setDisplayMentions(sortedPosts);
+      setFiltering(false);
+    }, 300);
   };
-
+const handleFilterLoading = (isLoading) => {
+  setFiltering(isLoading);
+};
   useEffect(() => {
     checkHealth();
     fetchMentions();
@@ -78,8 +82,6 @@ function App() {
     } catch (error) {
       console.error('Ошибка загрузки групп:', error);
       setGroups(defaultGroups);
-    } finally {
-
     }
   };
 
@@ -104,7 +106,6 @@ function App() {
       ]);
     }
   };
-
 
   const checkHealth = async () => {
     try {
@@ -144,18 +145,24 @@ function App() {
     }
   };
 
-  const openModal = (imageUrl, altText) => {
-    setModalData({
-      isOpen: true,
-      imageUrl,
-      altText
-    });
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    fetchMentions();
+    checkHealth();
   };
+
+  const openModal = (imageUrl, altText) => {
+    console.log('Open modal:', imageUrl, altText);
+  };
+
+  // 🔥 Объединяем все состояния загрузки
+  const isLoading = loading || monitoring || filtering;
 
   return (
     <div className="app">
       <Spin
-        spinning={loading}
+        spinning={isLoading} // 🔥 Используем объединенное состояние
         indicator={<CoolLoader />}
         tip="Загрузка данных..."
         size="large"
@@ -198,6 +205,7 @@ function App() {
               <SimpleDaysFilter
                 mentions={mentions}
                 onFilterApplied={handleFilterApplied}
+                onFilterLoading={handleFilterLoading}
               />
 
               <MentionsList
@@ -214,4 +222,5 @@ function App() {
     </div>
   );
 }
+
 export default App;
