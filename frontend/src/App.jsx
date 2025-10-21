@@ -33,8 +33,19 @@ function App() {
   const [groups, setGroups] = useState([]);
   const [displayMentions, setDisplayMentions] = useState([]);
 
+  const sortMentionsByDate = (mentionsList) => {
+    if (!mentionsList || !Array.isArray(mentionsList)) return [];
+
+    return [...mentionsList].sort((a, b) => {
+      const dateA = new Date(a.date || a.date_found);
+      const dateB = new Date(b.date || b.date_found);
+      return dateB - dateA; // DESC - новые сначала
+    });
+  };
+
   const handleFilterApplied = (posts) => {
-    setDisplayMentions(posts);
+    const sortedPosts = sortMentionsByDate(posts);
+    setDisplayMentions(sortedPosts);
   };
 
   useEffect(() => {
@@ -42,7 +53,6 @@ function App() {
     fetchMentions();
     fetchGroups();
     fetchKeywords();
-    setDisplayMentions(mentions);
   }, []);
 
   const fetchGroups = async () => {
@@ -108,8 +118,9 @@ function App() {
   const fetchMentions = async () => {
     try {
       const response = await axios.get('/api/mentions');
-      setMentions(response.data);
-      setDisplayMentions(response.data);
+      const sortedMentions = sortMentionsByDate(response.data);
+      setMentions(sortedMentions);
+      setDisplayMentions(sortedMentions);
     } catch (error) {
       setError(error.message);
     } finally {

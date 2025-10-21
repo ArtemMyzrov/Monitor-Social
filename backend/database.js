@@ -63,11 +63,31 @@ const dbHelpers = {
     });
   },
 
-  // Получение всех упоминаний
+  // 🔥 ИСПРАВЛЕННАЯ СОРТИРОВКА - по дате из VK (date), а не date_found
   getAllMentions: function () {
     return new Promise((resolve, reject) => {
       db.all(
-        `SELECT * FROM mentions ORDER BY date_found DESC`,
+        // 🔥 СОРТИРУЕМ ПО ДАТЕ ИЗ VK, ЕСЛИ ОНА ЕСТЬ, ИНАЧЕ ПО date_found
+        `SELECT * FROM mentions 
+         ORDER BY COALESCE(date, date_found) DESC`,
+        (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows);
+          }
+        }
+      );
+    });
+  },
+
+  // Альтернативный вариант - только по дате из VK
+  getAllMentionsByVkDate: function () {
+    return new Promise((resolve, reject) => {
+      db.all(
+        // 🔥 СТРОГО ПО ДАТЕ ИЗ VK
+        `SELECT * FROM mentions 
+         ORDER BY date DESC NULLS LAST, date_found DESC`,
         (err, rows) => {
           if (err) {
             reject(err);
@@ -84,7 +104,7 @@ const dbHelpers = {
     return new Promise((resolve, reject) => {
       db.get(
         `SELECT * FROM mentions 
-         ORDER BY date_found DESC 
+         ORDER BY COALESCE(date, date_found) DESC 
          LIMIT 1`,
         (err, row) => {
           if (err) {

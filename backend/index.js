@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { dbHelpers } = require('./database');
 const vkController = require('./controllers/vkController');
+const db = dbHelpers;
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -24,42 +25,52 @@ app.get('/api/health', (req, res) => {
 
 // Обновленный endpoint для получения упоминаний
 app.get('/api/mentions', async (req, res) => {
+  console.log('📊 Запрос mentions');
+
   try {
-    const mentions = await dbHelpers.getAllMentions();
-    res.json(mentions);
-  } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ error: err.message });
+    const rows = await dbHelpers.getAllMentions();
+
+    console.log(`✅ Отправлено ${rows.length} постов`);
+
+    // Логируем порядок сортировки
+    if (rows.length > 0) {
+      console.log('📅 Первые 3 поста в порядке сортировки:');
+      rows.slice(0, 3).forEach((row, i) => {
+        console.log(`${i + 1}. ${row.source} - ${row.date || row.date_found}`);
+      });
+    }
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Обновленный endpoint для добавления упоминаний
 app.post('/api/mentions', async (req, res) => {
+  const { text, source, url } = req.body;
+
+  if (!text || !source || !url) {
+    return res.status(400).json({ error: 'Missing required fields: text, source, url' });
+  }
+
   try {
-    const { text, source, url, vk_post_id, likes, reposts, views } = req.body;
-
-    if (!text || !source || !url) {
-      return res.status(400).json({ error: 'Missing required fields: text, source, url' });
-    }
-
-    const mentionId = await dbHelpers.saveMention({
+    const result = await dbHelpers.saveMention({
       text,
       source,
       url,
-      vk_post_id,
-      likes,
-      reposts,
-      views
+      date: new Date().toISOString() // Добавляем текущую дату
     });
 
     res.json({
-      id: mentionId,
+      id: result,
       message: 'Mention added successfully',
       text, source, url
     });
-  } catch (err) {
-    console.error('Insert error:', err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error('Insert error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

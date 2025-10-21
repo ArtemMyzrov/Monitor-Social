@@ -261,15 +261,16 @@ class VKParser {
             return [];
         }
     }
-
     parsePost(post, groupName = 'VK') {
+        // Правильно преобразуем Unix timestamp из VK
+        const postDate = new Date(post.date * 1000);
+
         return {
             text: post.text,
             source: `VK: ${groupName}`,
             url: `https://vk.com/wall${post.owner_id}_${post.id}`,
+            date: postDate.toISOString(), // 🔥 ПЕРЕДАЕМ ДАТУ ИЗ VK
             vk_post_id: `${post.owner_id}_${post.id}`,
-            date: new Date(post.date * 1000), // Дата публикации поста в VK
-            date_found: new Date(), // Дата когда пост был найден системой
             likes: post.likes?.count || 0,
             reposts: post.reposts?.count || 0,
             views: post.views?.count || 0
