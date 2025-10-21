@@ -1,0 +1,21 @@
+.ant-float-btn.scroll-btn {
+    background-color: white !important;
+
+}
+
+.ant-float-btn.scroll-btn:hover {
+    background-color: #b4b3b3 !important;
+    color: #fff !important;
+}
+
+.ant-float-btn.scroll-btn .ant-float-btn-body {
+    background-color: inherit !important;
+}
+
+.ant-float-btn.scroll-btn .ant-float-btn-icon {
+    color: #000 !important;
+}
+
+.ant-float-btn.scroll-btn .ant-float-btn-icon :hover {
+    color: #fff !important;
+}

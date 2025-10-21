@@ -15,6 +15,7 @@ import HealthStatus from './status/HealthStatus';
 import KeywordsManager from './keywords/KeywordsManager';
 import MentionsList from './mentions/MentionsList';
 import CoolLoader from './loader/CoolLoader';
+import ScrollToButton from './scroll-button/ScrollToButton';
 import './styles/App.css';
 
 const { Text } = Typography;
@@ -49,9 +50,9 @@ function App() {
       setFiltering(false);
     }, 300);
   };
-const handleFilterLoading = (isLoading) => {
-  setFiltering(isLoading);
-};
+  const handleFilterLoading = (isLoading) => {
+    setFiltering(isLoading);
+  };
   useEffect(() => {
     checkHealth();
     fetchMentions();
@@ -218,6 +219,7 @@ const handleFilterLoading = (isLoading) => {
             </>
           )}
         </div>
+        <ScrollToButton />
       </Spin>
     </div>
   );
