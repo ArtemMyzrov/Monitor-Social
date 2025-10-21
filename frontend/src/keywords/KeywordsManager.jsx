@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Card, Button, Space, Tag, Input, Typography, message } from 'antd';
-import { EditOutlined, SaveOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import { Card, Button, Space, Tag, Input, Typography, message, Modal } from 'antd';
+import { EditOutlined, SaveOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 const { Text } = Typography;
+const { confirm } = Modal;
 
 const KeywordsManager = ({ keywords, onKeywordsChange }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -44,21 +44,43 @@ const KeywordsManager = ({ keywords, onKeywordsChange }) => {
         setEditText('');
     };
 
+    // Удаление одного ключевого слова
+    const removeKeyword = (keywordToRemove) => {
+        confirm({
+            title: 'Удалить ключевое слово?',
+            content: `Вы уверены, что хотите удалить "${keywordToRemove}"?`,
+            okText: 'Удалить',
+            cancelText: 'Отмена',
+            okType: 'danger',
+            onOk() {
+                const newKeywords = keywords.filter(keyword => keyword !== keywordToRemove);
+                onKeywordsChange(newKeywords);
+                message.success('Ключевое слово удалено!');
+            }
+        });
+    };
+
     return (
         <Card
             title={
                 <Space>
                     <span>Ключевые слова для поиска</span>
-                    <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        size="small"
-                        onClick={startEditing}
-                    />
+                    <span style={{ fontSize: '12px', color: '#666' }}>
+                        ({keywords.length} слов)
+                    </span>
                 </Space>
             }
             style={{ marginBottom: 16 }}
             loading={loading}
+            extra={
+                <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={startEditing}
+                >
+                    Редактировать
+                </Button>
+            }
         >
             {isEditing ? (
                 <Space direction="vertical" style={{ width: '100%' }}>
@@ -87,13 +109,35 @@ const KeywordsManager = ({ keywords, onKeywordsChange }) => {
                 </Space>
             ) : (
                 <div>
-                    {keywords.map((keyword, index) => (
-                        <Tag key={index} color="blue" style={{ margin: '2px' }}>
-                            {keyword}
-                        </Tag>
-                    ))}
-                    {keywords.length === 0 && (
+                    {keywords.length === 0 ? (
                         <Text type="secondary">Ключевые слова не заданы</Text>
+                    ) : (
+                        keywords.map((keyword, index) => (
+                            <Tag
+                                key={index}
+                                color="blue"
+                                style={{
+                                    margin: '4px',
+                                    padding: '4px 8px',
+                                    fontSize: '13px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                                closable
+                                onClose={() => removeKeyword(keyword)}
+                                closeIcon={
+                                    <CloseOutlined
+                                        style={{
+                                            fontSize: '10px',
+                                            marginLeft: '2px'
+                                        }}
+                                    />
+                                }
+                            >
+                                {keyword}
+                            </Tag>
+                        ))
                     )}
                 </div>
             )}
