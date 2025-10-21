@@ -7,7 +7,9 @@ import {
   Space,
   Button,
   message,
+  Collapse,
 } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
 
 import GroupsManager from './groups/GroupsManager';
 import SimpleDaysFilter from './filters/SimpleDaysFilter';
@@ -192,15 +194,31 @@ function App() {
 
                 <HealthStatus health={health} mentionsCount={displayMentions.length} />
 
-                <KeywordsManager
-                  keywords={keywords}
-                  onKeywordsChange={setKeywords}
+                <Collapse
+                  className='collapse-vk'
+                  items={[
+                    {
+                      key: '1',
+                      label: (
+                        <>
+                          <SettingOutlined />   VK
+                        </>),
+                      children: (
+                        <>
+                          <KeywordsManager
+                            keywords={keywords}
+                            onKeywordsChange={setKeywords}
+                          />
+                          <GroupsManager
+                            groups={groups}
+                            onGroupsChange={handleGroupsChange}
+                          />
+                        </>
+                      )
+                    }
+                  ]}
                 />
 
-                <GroupsManager
-                  groups={groups}
-                  onGroupsChange={handleGroupsChange}
-                />
               </div>
 
               <SimpleDaysFilter
