@@ -190,8 +190,6 @@ function App() {
           ) : (
             <>
               <div className="app-header">
-                <h1>📊 Мониторинг соцсетей</h1>
-
                 <HealthStatus health={health} mentionsCount={displayMentions.length} />
 
                 <Collapse

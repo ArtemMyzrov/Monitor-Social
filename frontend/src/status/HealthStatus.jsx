@@ -1,7 +1,7 @@
-import { Card, Row, Col, Statistic, Typography } from 'antd';
+import { Card, Statistic, Typography } from 'antd';
 import { ClockCircleOutlined, MessageOutlined } from '@ant-design/icons';
+import './HealthStatus.css';
 
-const { Text } = Typography;
 
 const HealthStatus = ({ health, mentionsCount }) => {
   const formatDate = (dateString) => {
@@ -10,31 +10,31 @@ const HealthStatus = ({ health, mentionsCount }) => {
   };
 
   return (
-    <Card style={{ marginBottom: 16 }}>
-      <Row gutter={16}>
-        <Col span={8}>
-          <Statistic
-            title="Последнее обновление"
-            value={health?.timestamp ? formatDate(health.timestamp) : 'N/A'}
-            prefix={<ClockCircleOutlined />}
-          />
-        </Col>
-        <Col span={8}>
-          <Statistic
-            title="Статус системы"
-            value={health?.status || 'UNKNOWN'}
-            valueStyle={{ color: health?.status === 'OK' ? '#3f8600' : '#cf1322' }}
-          />
-        </Col>
-        <Col span={8}>
-          <Statistic
-            title="Всего упоминаний"
-            value={mentionsCount}
-            prefix={<MessageOutlined />}
-          />
-        </Col>
-      </Row>
-    </Card>
+
+    <div className='health-status'>
+      <h1>📊 Мониторинг соцсетей {health?.status === 'OK' && (
+        <span
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            backgroundColor: 'rgb(93 253 14)',
+            display: 'inline-block',
+            margin: '0px 0px 10px 0px',
+          }}
+        />
+      )}</h1>
+      <Statistic
+        value={health?.timestamp ? formatDate(health.timestamp) : 'N/A'}
+        prefix={<ClockCircleOutlined />}
+        valueStyle={{ color: 'wheat' }}
+      />
+      <Statistic
+        value={mentionsCount}
+        prefix={<MessageOutlined />}
+        valueStyle={{ color: 'wheat' }}
+      />
+    </div>
   );
 };
 

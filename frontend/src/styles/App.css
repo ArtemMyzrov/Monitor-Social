@@ -19,6 +19,10 @@
   overflow: hidden;
 }
 
+.health-status {
+  color: #fff;
+}
+
 .stats-row {
   background-color: #fff;
   height: 80px;
